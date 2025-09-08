@@ -1,103 +1,76 @@
-import Image from "next/image";
+
+'use client'; 
+
+import { ALL_ACTIVITIES } from '@/data';
+import { ActivityCard } from '@/components/activity-card';
+import { ScheduleView } from '@/components/schedule-view';
+import { ModeToggle } from '@/components/mode-toggle';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { PlusCircle } from 'lucide-react';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // We will add state here later for search and filtering
+  // const [searchTerm, setSearchTerm] = useState('');
+  // const [filteredActivities, setFilteredActivities] = useState(ALL_ACTIVITIES);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  return (
+    <main className="container mx-auto p-4 md:p-8">
+      {/* Header remains largely the same */}
+      <header className="relative text-center mb-8">
+        <div className="absolute top-0 right-0">
+          <ModeToggle />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
+          Weekendly ✨
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Design your perfect weekend by selecting a date and adding activities.
+        </p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* --- Left Column: Activity Library --- */}
+        <div className="md:col-span-1">
+          <div className="sticky top-8"> {/* Makes the library stick on scroll */}
+            <h2 className="text-2xl font-semibold mb-4">Activity Library</h2>
+
+            {/* Placeholder for Search and Add New Task */}
+            <div className="flex gap-2 mb-4">
+              <Input
+                placeholder="Search activities..."
+                // value={searchTerm}
+                // onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Button variant="outline">
+                <PlusCircle className="h-4 w-4 mr-2" /> New
+              </Button>
+            </div>
+            
+            {/* Placeholder for Filters */}
+            <div className="flex flex-wrap gap-2 mb-4">
+              {/* We'll make these functional later */}
+              <Button variant="ghost" size="sm">All</Button>
+              <Button variant="ghost" size="sm">🍔 Food</Button>
+              <Button variant="ghost" size="sm">🌲 Outdoors</Button>
+              <Button variant="ghost" size="sm">🧘 Relax</Button>
+            </div>
+
+            {/* Activity List */}
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+              {ALL_ACTIVITIES.map((activity) => (
+                <ActivityCard key={activity.id} activity={activity} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* --- Right Column: Schedule --- */}
+        <div className="md:col-span-2">
+          {/* We replace the static placeholder with our dynamic component */}
+          <ScheduleView />
+        </div>
+      </div>
+    </main>
   );
 }
