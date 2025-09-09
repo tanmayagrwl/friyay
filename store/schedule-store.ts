@@ -1,60 +1,172 @@
 // src/store/schedule-store.ts
-import { create } from 'zustand';
-import { Activity, DaySchedule, TimeBlock, WeekendData, Plans, ScheduledActivity } from '../types/types';
+import { create } from "zustand"
+import {
+  Activity,
+  DaySchedule,
+  TimeBlock,
+  WeekendData,
+  Plans,
+  ScheduledActivity,
+} from "../types/types" // Adjust path if needed
 
-// Helper to get the start of the current weekend (Saturday)
+// This helper function is safe to keep as it's only called on the client now.
 function getStartOfCurrentWeekend(): string {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  const diff = 6 - dayOfWeek; // Days to add to get to Saturday
-  const saturday = new Date(today.setDate(today.getDate() + diff));
-  return saturday.toISOString().split('T')[0]; // Format as "YYYY-MM-DD"
+  const today = new Date()
+  const dayOfWeek = today.getDay() // 0=Sun, 6=Sat
+  const daysUntilSaturday = (6 - dayOfWeek + 7) % 7
+  const saturday = new Date(today)
+  saturday.setDate(today.getDate() + daysUntilSaturday)
+  return saturday.toISOString().split("T")[0] // Format as "YYYY-MM-DD"
 }
 
 // Define the state shape
 interface ScheduleState {
-  plans: Plans;
-  activeWeekendStartDate: string;
-  setActiveWeekend: (date: string) => void;
-  getActivePlan: () => WeekendData | undefined;
-  addActivity: (activity: Activity, day: 'saturday' | 'sunday', timeBlock: TimeBlock) => void;
-  // We will add removeActivity, moveActivity etc. here later
+  plans: Plans
+  activeWeekendStartDate: string | null // Allow null for initial state
+  setActiveWeekend: (date: string) => void
+  initializeActiveWeekend: () => void // New action for safe initialization
+  getActivePlan: () => WeekendData | undefined
+  addActivity: (
+    activity: Activity,
+    day: "saturday" | "sunday",
+    timeBlock: TimeBlock
+  ) => void
+  removeActivity: (instanceId: string) => void // <-- ADD THIS
+  reorderActivities: (
+    day: "saturday" | "sunday",
+    timeBlock: TimeBlock,
+    oldIndex: number,
+    newIndex: number
+  ) => void
+  updateActivityNote: (instanceId: string, note: string) => void // <-- ADD THIS
 }
 
-// Define the initial empty state for a single plan
 const createEmptyPlan = (startDate: string): WeekendData => ({
   startDate,
   saturday: { morning: [], afternoon: [], evening: [] },
   sunday: { morning: [], afternoon: [], evening: [] },
-});
+})
 
 export const useScheduleStore = create<ScheduleState>((set, get) => ({
   plans: {},
-  activeWeekendStartDate: getStartOfCurrentWeekend(),
+  activeWeekendStartDate: null, // Start with null to prevent hydration mismatch
+
+  initializeActiveWeekend: () => {
+    // This function will be called from a useEffect in a component
+    if (get().activeWeekendStartDate === null) {
+      set({ activeWeekendStartDate: getStartOfCurrentWeekend() })
+    }
+  },
 
   setActiveWeekend: (date) => set({ activeWeekendStartDate: date }),
 
-  // A "selector" helper to get the currently active plan
   getActivePlan: () => {
-    const { plans, activeWeekendStartDate } = get();
-    return plans[activeWeekendStartDate];
+    const { plans, activeWeekendStartDate } = get()
+    if (!activeWeekendStartDate) return undefined // Handle null case
+    return plans[activeWeekendStartDate]
   },
 
   addActivity: (activity, day, timeBlock) =>
     set((state) => {
-      const { plans, activeWeekendStartDate } = state;
-      
-      // Get the current plan, or create it if it doesn't exist
-      const currentPlan = plans[activeWeekendStartDate] || createEmptyPlan(activeWeekendStartDate);
+      const { plans, activeWeekendStartDate } = state
+
+      // Guard against adding an activity before the date is initialized
+      if (!activeWeekendStartDate) return {}
+
+      const currentPlan =
+        plans[activeWeekendStartDate] || createEmptyPlan(activeWeekendStartDate)
 
       const newScheduledActivity: ScheduledActivity = {
         ...activity,
         instanceId: crypto.randomUUID(),
-      };
+      }
 
-      // Deep copy to avoid mutation issues
+      const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
+      updatedPlan[day][timeBlock].push(newScheduledActivity)
+
+      return {
+        plans: {
+          ...plans,
+          [activeWeekendStartDate]: updatedPlan,
+        },
+      }
+    }),
+  removeActivity: (instanceId) =>
+    set((state) => {
+      const { plans, activeWeekendStartDate } = state
+      if (!activeWeekendStartDate) return {} // Guard clause
+
+      const currentPlan = plans[activeWeekendStartDate]
+      if (!currentPlan) return {} // Guard clause
+
+      // Create a deep copy to avoid direct state mutation
+      const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
+
+      // Find and remove the activity from whichever list it's in
+      for (const day of ["saturday", "sunday"]) {
+        for (const timeBlock of ["morning", "afternoon", "evening"]) {
+          updatedPlan[day][timeBlock] = updatedPlan[day][timeBlock].filter(
+            (activity: ScheduledActivity) => activity.instanceId !== instanceId
+          )
+        }
+      }
+
+      return {
+        plans: {
+          ...plans,
+          [activeWeekendStartDate]: updatedPlan,
+        },
+      }
+    }),
+
+  reorderActivities: (day, timeBlock, oldIndex, newIndex) =>
+    set((state) => {
+      const { plans, activeWeekendStartDate } = state
+      if (!activeWeekendStartDate) return {} // Guard clause
+
+      const currentPlan = plans[activeWeekendStartDate]
+      if (!currentPlan) return {} // Guard clause
+
+      // Create a deep copy to avoid direct state mutation
+      const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
+      const activities = updatedPlan[day][timeBlock]
+
+      // Reorder the activities array
+      const [movedActivity] = activities.splice(oldIndex, 1)
+      activities.splice(newIndex, 0, movedActivity)
+
+      return {
+        plans: {
+          ...plans,
+          [activeWeekendStartDate]: updatedPlan,
+        },
+      }
+    }),
+
+      updateActivityNote: (instanceId, note) =>
+    set((state) => {
+      const { plans, activeWeekendStartDate } = state;
+      if (!activeWeekendStartDate) return {};
+
+      const currentPlan = plans[activeWeekendStartDate];
+      if (!currentPlan) return {};
+
       const updatedPlan = JSON.parse(JSON.stringify(currentPlan));
-      updatedPlan[day][timeBlock].push(newScheduledActivity);
+
+      // Find the specific activity and update its note
+      let activityUpdated = false;
+      for (const day of ['saturday', 'sunday']) {
+        for (const timeBlock of ['morning', 'afternoon', 'evening']) {
+          const activities = updatedPlan[day][timeBlock] as ScheduledActivity[];
+          const activityIndex = activities.findIndex(act => act.instanceId === instanceId);
+          if (activityIndex > -1) {
+            activities[activityIndex].note = note;
+            activityUpdated = true;
+            break;
+          }
+        }
+        if(activityUpdated) break;
+      }
 
       return {
         plans: {

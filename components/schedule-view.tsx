@@ -1,55 +1,188 @@
 // src/components/schedule-view.tsx
 'use client';
 
+import { useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useScheduleStore } from '@/store/schedule-store';
 import { WeekendSelector } from './weekend-selector';
-import { DaySchedule, ScheduledActivity } from '../types/types';
+import { DaySchedule, ScheduledActivity } from '../types/types'; // Adjust path if needed
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { ActivityCard } from './activity-card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
+// --- Sortable wrapper for scheduled activities ---
+// It now accepts an onEdit prop to pass down.
+function SortableActivityCard({ 
+  activity, 
+  onDelete,
+  onEdit 
+}: { 
+  activity: ScheduledActivity; 
+  onDelete: (instanceId: string) => void;
+  onEdit: (activity: ScheduledActivity) => void; 
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: activity.instanceId });
 
-function ScheduledActivityCard({ activity }: { activity: ScheduledActivity }) {
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   return (
-    <div className="bg-background border rounded-lg p-2 text-sm mb-2">
-      <p className="font-semibold">{activity.title}</p>
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`mb-2 group relative ${isDragging ? 'z-50' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        {/* The drag handle */}
+        <div className="flex-1">
+          <ActivityCard 
+            activity={activity} 
+            variant="schedule"
+            onDelete={onDelete}
+            onEdit={onEdit} // Pass the onEdit handler to the actual card
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-// A component to render one day's schedule
-function DayColumn({ day, dayName }: { day: DaySchedule; dayName: string }) {
+// --- Updated TimeBlockDroppable ---
+// It now accepts onEdit and onDelete from its parent.
+function TimeBlockDroppable({ 
+  day, 
+  timeBlock, 
+  activities = [],
+  onDelete,
+  onEdit
+}: { 
+  day: 'saturday' | 'sunday'; 
+  timeBlock: 'morning' | 'afternoon' | 'evening'; 
+  activities?: ScheduledActivity[];
+  onDelete: (instanceId: string) => void;
+  onEdit: (activity: ScheduledActivity) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${day}-${timeBlock}` });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-muted/50 p-2 rounded-md min-h-[80px] transition-all duration-200 ${
+        isOver ? 'bg-primary/20 border-2 border-primary border-dashed scale-[1.02]' : 'border-2 border-transparent'
+      }`}
+    >
+      <SortableContext items={activities.map(a => a.instanceId)} strategy={verticalListSortingStrategy}>
+        {activities.map(activity => (
+          <SortableActivityCard 
+            key={activity.instanceId}
+            activity={activity}
+            onDelete={onDelete}
+            onEdit={onEdit} // Pass handlers down
+          />
+        ))}
+      </SortableContext>
+      {isOver && activities.length === 0 && (
+        <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+          Drop here
+        </div>
+      )}
+    </div>
+  );
+}
+
+// NOTE: The old `ScheduledActivityCard` function is no longer needed and has been removed.
+
+// --- Updated DayColumn ---
+// It now accepts and passes down onEdit and onDelete.
+function DayColumn({ 
+  day, 
+  dayName, 
+  onDelete, 
+  onEdit 
+}: { 
+  day?: DaySchedule; 
+  dayName: 'saturday' | 'sunday';
+  onDelete: (instanceId: string) => void;
+  onEdit: (activity: ScheduledActivity) => void;
+}) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{dayName}</CardTitle>
+        <CardTitle>{dayName.charAt(0).toUpperCase() + dayName.slice(1)}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
           <h3 className="font-semibold mb-2 text-muted-foreground">Morning</h3>
-          <div className="bg-muted/50 p-2 rounded-md min-h-[50px]">
-            {day.morning.map(act => <ScheduledActivityCard key={act.instanceId} activity={act} />)}
-          </div>
+          <TimeBlockDroppable 
+            day={dayName} 
+            timeBlock="morning"
+            activities={day?.morning || []}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
         </div>
         <div>
           <h3 className="font-semibold mb-2 text-muted-foreground">Afternoon</h3>
-          <div className="bg-muted/50 p-2 rounded-md min-h-[50px]">
-            {day.afternoon.map(act => <ScheduledActivityCard key={act.instanceId} activity={act} />)}
-          </div>
+          <TimeBlockDroppable 
+            day={dayName} 
+            timeBlock="afternoon"
+            activities={day?.afternoon || []}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
         </div>
         <div>
           <h3 className="font-semibold mb-2 text-muted-foreground">Evening</h3>
-          <div className="bg-muted/50 p-2 rounded-md min-h-[50px]">
-            {day.evening.map(act => <ScheduledActivityCard key={act.instanceId} activity={act} />)}
-          </div>
+          <TimeBlockDroppable 
+            day={dayName} 
+            timeBlock="evening"
+            activities={day?.evening || []}
+            onDelete={onDelete}
+            onEdit={onEdit}
+          />
         </div>
       </CardContent>
     </Card>
   );
 }
 
-
+// --- Main ScheduleView Component ---
+// This now manages the state for the Edit Dialog.
 export function ScheduleView() {
-  // Get the specific plan for the active weekend using our selector function
   const activePlan = useScheduleStore((state) => state.getActivePlan());
+  const removeActivity = useScheduleStore((state) => state.removeActivity);
+  const updateActivityNote = useScheduleStore((state) => state.updateActivityNote);
+
+  // State for managing the edit dialog
+  const [editingActivity, setEditingActivity] = useState<ScheduledActivity | null>(null);
+  const [noteContent, setNoteContent] = useState('');
+
+  const handleOpenEditDialog = (activity: ScheduledActivity) => {
+    setEditingActivity(activity);
+    setNoteContent(activity.note || '');
+  };
+
+  const handleSaveNote = () => {
+    if (editingActivity) {
+      updateActivityNote(editingActivity.instanceId, noteContent);
+      setEditingActivity(null); // Close the dialog
+    }
+  };
 
   return (
     <div>
@@ -58,17 +191,54 @@ export function ScheduleView() {
         <WeekendSelector />
       </div>
 
-      {activePlan ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <DayColumn day={activePlan.saturday} dayName="Saturday" />
-          <DayColumn day={activePlan.sunday} dayName="Sunday" />
-        </div>
-      ) : (
-        <div className="p-8 text-center bg-muted/40 rounded-lg">
-          <p>This weekend is a blank canvas!</p>
-          <p className="text-muted-foreground text-sm">Drag activities here to start planning.</p>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DayColumn 
+          day={activePlan?.saturday} 
+          dayName="saturday" 
+          onDelete={removeActivity}
+          onEdit={handleOpenEditDialog}
+        />
+        <DayColumn 
+          day={activePlan?.sunday} 
+          dayName="sunday" 
+          onDelete={removeActivity}
+          onEdit={handleOpenEditDialog}
+        />
+      </div>
+
+      {!activePlan && (
+         <div className="p-8 mt-6 text-center bg-muted/40 rounded-lg">
+           <p className="text-lg">This weekend is a blank canvas!</p>
+           <p className="text-muted-foreground text-sm">Drag activities from the library to start planning.</p>
+         </div>
       )}
+
+      {/* The Edit Dialog - managed here */}
+      <Dialog open={!!editingActivity} onOpenChange={() => setEditingActivity(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit: {editingActivity?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="note" className="text-right">Note</Label>
+              <Textarea
+                id="note"
+                value={noteContent}
+                onChange={(e) => setNoteContent(e.target.value)}
+                className="col-span-3"
+                placeholder="Add a personal note (e.g., location, time, reminder)..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleSaveNote}>Save Note</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

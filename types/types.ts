@@ -11,6 +11,7 @@ export interface Activity {
 }
 
 export interface ScheduledActivity extends Activity {
+  note?: string;
   instanceId: string;
 }
 
