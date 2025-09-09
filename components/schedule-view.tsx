@@ -7,24 +7,28 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useScheduleStore } from '@/store/schedule-store';
 import { WeekendSelector } from './weekend-selector';
-import { DaySchedule, ScheduledActivity } from '../types/types'; // Adjust path if needed
+import { DaySchedule, ScheduledActivity } from '../types/types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { ActivityCard } from './activity-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { GripVertical } from 'lucide-react';
 
-// --- Sortable wrapper for scheduled activities ---
-// It now accepts an onEdit prop to pass down.
+// Sortable wrapper for scheduled activities
 function SortableActivityCard({ 
   activity, 
   onDelete,
-  onEdit 
+  onEdit,
+  containerId,
+  index
 }: { 
   activity: ScheduledActivity; 
   onDelete: (instanceId: string) => void;
   onEdit: (activity: ScheduledActivity) => void; 
+  containerId: string;
+  index: number;
 }) {
   const {
     attributes,
@@ -33,12 +37,23 @@ function SortableActivityCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: activity.instanceId });
+  } = useSortable({ 
+    id: activity.instanceId,
+    data: {
+      activity,
+      isLibraryItem: false,
+      sortable: {
+        containerId,
+        index
+      }
+    }
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : 'auto',
   };
 
   return (
@@ -48,13 +63,21 @@ function SortableActivityCard({
       className={`mb-2 group relative ${isDragging ? 'z-50' : ''}`}
     >
       <div className="flex items-center gap-2">
-        {/* The drag handle */}
+        {/* Drag handle */}
+        <div 
+          {...attributes}
+          {...listeners}
+          className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded flex-shrink-0"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
         <div className="flex-1">
           <ActivityCard 
             activity={activity} 
             variant="schedule"
             onDelete={onDelete}
-            onEdit={onEdit} // Pass the onEdit handler to the actual card
+            onEdit={onEdit}
           />
         </div>
       </div>
@@ -62,8 +85,7 @@ function SortableActivityCard({
   );
 }
 
-// --- Updated TimeBlockDroppable ---
-// It now accepts onEdit and onDelete from its parent.
+// TimeBlockDroppable component
 function TimeBlockDroppable({ 
   day, 
   timeBlock, 
@@ -77,7 +99,16 @@ function TimeBlockDroppable({
   onDelete: (instanceId: string) => void;
   onEdit: (activity: ScheduledActivity) => void;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `${day}-${timeBlock}` });
+  const containerId = `${day}-${timeBlock}`;
+  const { setNodeRef, isOver } = useDroppable({ 
+    id: containerId,
+    data: {
+      isLibraryItem: false,
+      sortable: {
+        containerId
+      }
+    }
+  });
 
   return (
     <div
@@ -87,12 +118,14 @@ function TimeBlockDroppable({
       }`}
     >
       <SortableContext items={activities.map(a => a.instanceId)} strategy={verticalListSortingStrategy}>
-        {activities.map(activity => (
+        {activities.map((activity, index) => (
           <SortableActivityCard 
             key={activity.instanceId}
             activity={activity}
             onDelete={onDelete}
-            onEdit={onEdit} // Pass handlers down
+            onEdit={onEdit}
+            containerId={containerId}
+            index={index}
           />
         ))}
       </SortableContext>
@@ -105,9 +138,7 @@ function TimeBlockDroppable({
   );
 }
 
-// NOTE: The old `ScheduledActivityCard` function is no longer needed and has been removed.
-
-// --- Updated DayColumn ---
+// DayColumn component
 // It now accepts and passes down onEdit and onDelete.
 function DayColumn({ 
   day, 

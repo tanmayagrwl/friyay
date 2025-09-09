@@ -38,6 +38,14 @@ interface ScheduleState {
     oldIndex: number,
     newIndex: number
   ) => void
+  moveActivityBetweenTimeBlocks: (
+    instanceId: string,
+    fromDay: "saturday" | "sunday",
+    fromTimeBlock: TimeBlock,
+    toDay: "saturday" | "sunday", 
+    toTimeBlock: TimeBlock,
+    toIndex: number
+  ) => void
   updateActivityNote: (instanceId: string, note: string) => void // <-- ADD THIS
 }
 
@@ -134,6 +142,39 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
       // Reorder the activities array
       const [movedActivity] = activities.splice(oldIndex, 1)
       activities.splice(newIndex, 0, movedActivity)
+
+      return {
+        plans: {
+          ...plans,
+          [activeWeekendStartDate]: updatedPlan,
+        },
+      }
+    }),
+
+  moveActivityBetweenTimeBlocks: (instanceId, fromDay, fromTimeBlock, toDay, toTimeBlock, toIndex) =>
+    set((state) => {
+      const { plans, activeWeekendStartDate } = state
+      if (!activeWeekendStartDate) return {} // Guard clause
+
+      const currentPlan = plans[activeWeekendStartDate]
+      if (!currentPlan) return {} // Guard clause
+
+      // Create a deep copy to avoid direct state mutation
+      const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
+      
+      // Find and remove the activity from the source location
+      const sourceActivities = updatedPlan[fromDay][fromTimeBlock]
+      const activityIndex = sourceActivities.findIndex(
+        (activity: ScheduledActivity) => activity.instanceId === instanceId
+      )
+      
+      if (activityIndex === -1) return {} // Activity not found
+      
+      const [movedActivity] = sourceActivities.splice(activityIndex, 1)
+      
+      // Add the activity to the target location at the specified index
+      const targetActivities = updatedPlan[toDay][toTimeBlock]
+      targetActivities.splice(toIndex, 0, movedActivity)
 
       return {
         plans: {

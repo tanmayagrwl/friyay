@@ -10,14 +10,14 @@ import {
   Mountain,
   Palmtree,
   X,
-  Pencil, // <-- 1. IMPORT Pencil icon
+  Pencil,
 } from "lucide-react"
 import { Activity, ScheduledActivity } from "../types/types"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import {
   Card,
-  CardContent, // <-- 2. IMPORT CardContent for displaying the note
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -37,32 +37,32 @@ interface ActivityCardProps {
   activity: Activity | ScheduledActivity
   variant: "library" | "schedule"
   onDelete?: (instanceId: string) => void
-  onEdit?: (activity: ScheduledActivity) => void // <-- 3. ADD onEdit prop
+  onEdit?: (activity: ScheduledActivity) => void
+  isDragOverlay?: boolean
 }
 
-// 4. ADD onEdit to the function's parameters
 export function ActivityCard({
   activity,
   variant,
   onDelete,
   onEdit,
+  isDragOverlay = false,
 }: ActivityCardProps) {
   const isLibraryItem = variant === "library"
   
-  // Your draggable logic is complex and seems geared for a future Sortable feature.
-  // I will leave it as is, since it works for the current "draggable" case.
-  const draggableId = isLibraryItem
-    ? `library-${activity.id}`
-    : `scheduled-${(activity as ScheduledActivity).instanceId}`
+  // Only use draggable for library items - scheduled items use sortable instead
+  const draggableConfig = isLibraryItem ? {
+    id: `library-${activity.id}`,
+    data: { 
+      activity, 
+      isLibraryItem: true 
+    },
+  } : undefined;
 
-  const draggableConfig = {
-      id: draggableId,
-      data: { activity, isLibraryItem },
-      disabled: !isLibraryItem, // Simplified your disabled logic
-  };
-
-  const { attributes, listeners, setNodeRef, isDragging } =
-    useDraggable(draggableConfig)
+  const draggableResult = useDraggable(draggableConfig || { id: 'dummy', disabled: true });
+  
+  // Only apply draggable props for library items
+  const { attributes, listeners, setNodeRef, isDragging } = draggableResult;
 
   const style = {
     opacity: isDragging ? 0.5 : 1,
@@ -70,20 +70,21 @@ export function ActivityCard({
     userSelect: "none" as const,
     WebkitUserSelect: "none" as const,
   }
+  
   const scheduledActivity = activity as ScheduledActivity
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={isLibraryItem ? setNodeRef : undefined}
+      style={isLibraryItem ? style : undefined}
       {...(isLibraryItem ? listeners : {})}
       {...(isLibraryItem ? attributes : {})}
-      className={`relative group ${isLibraryItem ? "cursor-grab" : ""}`}
+      className={`relative group ${isLibraryItem ? "cursor-grab active:cursor-grabbing" : ""} ${
+        isDragOverlay ? "transform rotate-2 scale-105" : ""
+      }`}
     >
-      {/* --- 5. WRAP buttons in a div for proper layout --- */}
-      {variant === "schedule" && (
+      {variant === "schedule" && !isDragOverlay && (
         <div className="absolute top-1 right-1 flex opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          {/* --- 6. ADD the Edit button conditionally --- */}
           {onEdit && (
             <Button
               variant="ghost"
@@ -96,7 +97,6 @@ export function ActivityCard({
             </Button>
           )}
 
-          {/* Your existing Delete button */}
           {onDelete && (
             <Button
               variant="ghost"
@@ -112,7 +112,6 @@ export function ActivityCard({
       )}
 
       <Card className="transition-shadow hover:shadow-md">
-        {/* Added pr-12 to header to prevent title overlapping with buttons on hover */}
         <CardHeader className="pr-12">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg">{activity.title}</CardTitle>
@@ -120,7 +119,6 @@ export function ActivityCard({
           </div>
           <CardDescription>{activity.description}</CardDescription>
         </CardHeader>
-        {/* --- 7. ADD CardContent to display the note --- */}
         <CardContent className="py-0">
             {scheduledActivity.note && (
                 <p className="text-sm text-muted-foreground mt-2 border-l-2 pl-2 italic">
