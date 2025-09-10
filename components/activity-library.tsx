@@ -12,8 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PlusCircle } from 'lucide-react';
 
-const CATEGORIES = ['All', 'Food', 'Outdoors', 'Relax', 'Entertainment'];
-
+const CATEGORIES = ['All', 'Food', 'Outdoors', 'Relax', 'Entertainment', 'Family'];
+const VIBES = ['Energetic', 'Relaxed', 'Adventurous', 'Creative', 'Social'];
 export function ActivityLibrary() {
   // State for managing the "Add New" dialog
   const [isNewActivityDialogOpen, setIsNewActivityDialogOpen] = useState(false);
@@ -44,7 +44,7 @@ export function ActivityLibrary() {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as Activity['category'],
-      vibe: 'Relaxed', // Default vibe for now
+      vibe: formData.get('vibe') as Activity['vibe'], // Default vibe for now
       icon: 'Palmtree', // Default icon
     };
     setCustomActivities(prev => [...prev, newActivity]);
@@ -86,6 +86,18 @@ export function ActivityLibrary() {
                   <SelectContent>
                     {CATEGORIES.filter(c => c !== 'All').map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                   </SelectContent>
+                  
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="vibe" className="text-right">Vibe</Label>
+                <Select name="vibe" required>
+                  <SelectTrigger className="col-span-3"><SelectValue placeholder="Select a vibe" /></SelectTrigger>
+                  <SelectContent>
+                    {VIBES.map(vibe => <SelectItem key={vibe} value={vibe}>{vibe}</SelectItem>)}
+                  </SelectContent>
+                  
                 </Select>
               </div>
               <DialogFooter>
