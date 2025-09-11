@@ -1,7 +1,7 @@
 // src/components/schedule-view.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -15,8 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { GripVertical } from 'lucide-react';
+import { ImageExportButton } from './image-export-button';
 
-// Sortable wrapper for scheduled activities
 function SortableActivityCard({ 
   activity, 
   onDelete,
@@ -63,7 +63,6 @@ function SortableActivityCard({
       className={`mb-2 group relative ${isDragging ? 'z-50' : ''}`}
     >
       <div className="flex items-center gap-2">
-        {/* Drag handle */}
         <div 
           {...attributes}
           {...listeners}
@@ -71,7 +70,6 @@ function SortableActivityCard({
         >
           <GripVertical className="h-4 w-4 text-muted-foreground" />
         </div>
-        
         <div className="flex-1">
           <ActivityCard 
             activity={activity} 
@@ -85,7 +83,6 @@ function SortableActivityCard({
   );
 }
 
-// TimeBlockDroppable component
 function TimeBlockDroppable({ 
   day, 
   timeBlock, 
@@ -138,8 +135,6 @@ function TimeBlockDroppable({
   );
 }
 
-// DayColumn component
-// It now accepts and passes down onEdit and onDelete.
 function DayColumn({ 
   day, 
   dayName, 
@@ -193,15 +188,14 @@ function DayColumn({
 }
 
 // --- Main ScheduleView Component ---
-// This now manages the state for the Edit Dialog.
 export function ScheduleView() {
   const activePlan = useScheduleStore((state) => state.getActivePlan());
   const removeActivity = useScheduleStore((state) => state.removeActivity);
   const updateActivityNote = useScheduleStore((state) => state.updateActivityNote);
 
-  // State for managing the edit dialog
   const [editingActivity, setEditingActivity] = useState<ScheduledActivity | null>(null);
   const [noteContent, setNoteContent] = useState('');
+  const scheduleContainerRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
 
   const handleOpenEditDialog = (activity: ScheduledActivity) => {
     setEditingActivity(activity);
@@ -211,18 +205,22 @@ export function ScheduleView() {
   const handleSaveNote = () => {
     if (editingActivity) {
       updateActivityNote(editingActivity.instanceId, noteContent);
-      setEditingActivity(null); // Close the dialog
+      setEditingActivity(null);
     }
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
         <h2 className="text-2xl font-semibold">Your Schedule</h2>
-        <WeekendSelector />
+        <div className="flex flex-col-reverse sm:flex-row gap-2 items-center">
+          <ImageExportButton exportRef={scheduleContainerRef} />
+          <WeekendSelector />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* CORRECTED: The ref is on the container that ONLY holds the day columns */}
+      <div ref={scheduleContainerRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-background rounded-lg">
         <DayColumn 
           day={activePlan?.saturday} 
           dayName="saturday" 
@@ -244,7 +242,6 @@ export function ScheduleView() {
          </div>
       )}
 
-      {/* The Edit Dialog - managed here */}
       <Dialog open={!!editingActivity} onOpenChange={() => setEditingActivity(null)}>
         <DialogContent>
           <DialogHeader>
