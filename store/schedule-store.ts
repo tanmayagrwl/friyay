@@ -8,6 +8,7 @@ import {
   Plans,
   ScheduledActivity,
 } from "../types/types" // Adjust path if needed
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 // This helper function is safe to keep as it's only called on the client now.
 function getStartOfCurrentWeekend(): string {
@@ -55,7 +56,10 @@ const createEmptyPlan = (startDate: string): WeekendData => ({
   sunday: { morning: [], afternoon: [], evening: [] },
 })
 
-export const useScheduleStore = create<ScheduleState>((set, get) => ({
+export const useScheduleStore = create(
+  persist<ScheduleState>(
+    (set, get) => ({
+
   plans: {},
   activeWeekendStartDate: null, // Start with null to prevent hydration mismatch
 
@@ -216,4 +220,8 @@ export const useScheduleStore = create<ScheduleState>((set, get) => ({
         },
       };
     }),
-}));
+}), {
+      name: 'friyay-storage', 
+      storage: createJSONStorage(() => localStorage),
+    }
+  ));
