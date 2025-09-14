@@ -167,7 +167,7 @@ export default function Home() {
           <div className="absolute top-0 right-0">
             <ModeToggle />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">Weekendly ✨</h1>
+          <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">Friyay 🏖️</h1>
           <p className="text-muted-foreground mt-2">Design your perfect weekend by selecting a date and adding activities.</p>
         </header>
 

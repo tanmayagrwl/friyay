@@ -1,4 +1,3 @@
-// src/components/weekend-selector.tsx
 'use client';
 
 import { useEffect } from 'react';
@@ -19,9 +18,6 @@ export function WeekendSelector() {
   const activeDate = useScheduleStore((state) => state.activeWeekendStartDate);
   const setActiveDate = useScheduleStore((state) => state.setActiveWeekend);
   const initializeActiveWeekend = useScheduleStore((state) => state.initializeActiveWeekend);
-
-  // This useEffect hook is the core of the fix.
-  // It runs only on the client, after the initial render.
   useEffect(() => {
     initializeActiveWeekend();
   }, [initializeActiveWeekend]);
@@ -37,8 +33,6 @@ export function WeekendSelector() {
     setActiveDate(selectedDate.toISOString().split('T')[0]);
   };
 
-  // While the date is null (during server render and initial client render),
-  // show a disabled loading button.
   if (!activeDate) {
     return (
       <Button
@@ -51,8 +45,6 @@ export function WeekendSelector() {
       </Button>
     );
   }
-
-  // Once the date is initialized, render the fully interactive component.
   return (
     <Popover>
       <PopoverTrigger asChild>

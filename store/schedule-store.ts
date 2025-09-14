@@ -1,38 +1,35 @@
-// src/store/schedule-store.ts
 import { create } from "zustand"
 import {
   Activity,
-  DaySchedule,
   TimeBlock,
   WeekendData,
   Plans,
   ScheduledActivity,
-} from "../types/types" // Adjust path if needed
+} from "../types/types" 
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-// This helper function is safe to keep as it's only called on the client now.
 function getStartOfCurrentWeekend(): string {
   const today = new Date()
-  const dayOfWeek = today.getDay() // 0=Sun, 6=Sat
+  const dayOfWeek = today.getDay() 
   const daysUntilSaturday = (6 - dayOfWeek + 7) % 7
   const saturday = new Date(today)
   saturday.setDate(today.getDate() + daysUntilSaturday)
-  return saturday.toISOString().split("T")[0] // Format as "YYYY-MM-DD"
+  return saturday.toISOString().split("T")[0] 
 }
 
-// Define the state shape
+
 interface ScheduleState {
   plans: Plans
-  activeWeekendStartDate: string | null // Allow null for initial state
+  activeWeekendStartDate: string | null 
   setActiveWeekend: (date: string) => void
-  initializeActiveWeekend: () => void // New action for safe initialization
+  initializeActiveWeekend: () => void 
   getActivePlan: () => WeekendData | undefined
   addActivity: (
     activity: Activity,
     day: "saturday" | "sunday",
     timeBlock: TimeBlock
   ) => void
-  removeActivity: (instanceId: string) => void // <-- ADD THIS
+  removeActivity: (instanceId: string) => void 
   reorderActivities: (
     day: "saturday" | "sunday",
     timeBlock: TimeBlock,
@@ -47,7 +44,7 @@ interface ScheduleState {
     toTimeBlock: TimeBlock,
     toIndex: number
   ) => void
-  updateActivityNote: (instanceId: string, note: string) => void // <-- ADD THIS
+  updateActivityNote: (instanceId: string, note: string) => void 
 }
 
 const createEmptyPlan = (startDate: string): WeekendData => ({
@@ -61,10 +58,9 @@ export const useScheduleStore = create(
     (set, get) => ({
 
   plans: {},
-  activeWeekendStartDate: null, // Start with null to prevent hydration mismatch
+  activeWeekendStartDate: null, 
 
   initializeActiveWeekend: () => {
-    // This function will be called from a useEffect in a component
     if (get().activeWeekendStartDate === null) {
       set({ activeWeekendStartDate: getStartOfCurrentWeekend() })
     }
@@ -74,7 +70,7 @@ export const useScheduleStore = create(
 
   getActivePlan: () => {
     const { plans, activeWeekendStartDate } = get()
-    if (!activeWeekendStartDate) return undefined // Handle null case
+    if (!activeWeekendStartDate) return undefined 
     return plans[activeWeekendStartDate]
   },
 
@@ -82,7 +78,6 @@ export const useScheduleStore = create(
     set((state) => {
       const { plans, activeWeekendStartDate } = state
 
-      // Guard against adding an activity before the date is initialized
       if (!activeWeekendStartDate) return {}
 
       const currentPlan =
@@ -106,15 +101,13 @@ export const useScheduleStore = create(
   removeActivity: (instanceId) =>
     set((state) => {
       const { plans, activeWeekendStartDate } = state
-      if (!activeWeekendStartDate) return {} // Guard clause
+      if (!activeWeekendStartDate) return {} 
 
       const currentPlan = plans[activeWeekendStartDate]
-      if (!currentPlan) return {} // Guard clause
+      if (!currentPlan) return {} 
 
-      // Create a deep copy to avoid direct state mutation
       const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
 
-      // Find and remove the activity from whichever list it's in
       for (const day of ["saturday", "sunday"]) {
         for (const timeBlock of ["morning", "afternoon", "evening"]) {
           updatedPlan[day][timeBlock] = updatedPlan[day][timeBlock].filter(
@@ -134,16 +127,16 @@ export const useScheduleStore = create(
   reorderActivities: (day, timeBlock, oldIndex, newIndex) =>
     set((state) => {
       const { plans, activeWeekendStartDate } = state
-      if (!activeWeekendStartDate) return {} // Guard clause
+      if (!activeWeekendStartDate) return {} 
 
       const currentPlan = plans[activeWeekendStartDate]
-      if (!currentPlan) return {} // Guard clause
+      if (!currentPlan) return {}
 
-      // Create a deep copy to avoid direct state mutation
+
       const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
       const activities = updatedPlan[day][timeBlock]
 
-      // Reorder the activities array
+
       const [movedActivity] = activities.splice(oldIndex, 1)
       activities.splice(newIndex, 0, movedActivity)
 
@@ -158,25 +151,24 @@ export const useScheduleStore = create(
   moveActivityBetweenTimeBlocks: (instanceId, fromDay, fromTimeBlock, toDay, toTimeBlock, toIndex) =>
     set((state) => {
       const { plans, activeWeekendStartDate } = state
-      if (!activeWeekendStartDate) return {} // Guard clause
+      if (!activeWeekendStartDate) return {} 
 
       const currentPlan = plans[activeWeekendStartDate]
-      if (!currentPlan) return {} // Guard clause
 
-      // Create a deep copy to avoid direct state mutation
+
+
       const updatedPlan = JSON.parse(JSON.stringify(currentPlan))
       
-      // Find and remove the activity from the source location
+
       const sourceActivities = updatedPlan[fromDay][fromTimeBlock]
       const activityIndex = sourceActivities.findIndex(
         (activity: ScheduledActivity) => activity.instanceId === instanceId
       )
       
-      if (activityIndex === -1) return {} // Activity not found
+      if (activityIndex === -1) return {} 
       
       const [movedActivity] = sourceActivities.splice(activityIndex, 1)
       
-      // Add the activity to the target location at the specified index
       const targetActivities = updatedPlan[toDay][toTimeBlock]
       targetActivities.splice(toIndex, 0, movedActivity)
 
@@ -198,7 +190,6 @@ export const useScheduleStore = create(
 
       const updatedPlan = JSON.parse(JSON.stringify(currentPlan));
 
-      // Find the specific activity and update its note
       let activityUpdated = false;
       for (const day of ['saturday', 'sunday']) {
         for (const timeBlock of ['morning', 'afternoon', 'evening']) {

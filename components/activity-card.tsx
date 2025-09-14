@@ -1,4 +1,3 @@
-// src/components/activity-card.tsx
 "use client"
 
 import { useDraggable } from "@dnd-kit/core"
@@ -50,7 +49,6 @@ export function ActivityCard({
 }: ActivityCardProps) {
   const isLibraryItem = variant === "library"
   
-  // Only use draggable for library items - scheduled items use sortable instead
   const draggableConfig = isLibraryItem ? {
     id: `library-${activity.id}`,
     data: { 
@@ -61,7 +59,6 @@ export function ActivityCard({
 
   const draggableResult = useDraggable(draggableConfig || { id: 'dummy', disabled: true });
   
-  // Only apply draggable props for library items
   const { attributes, listeners, setNodeRef, isDragging } = draggableResult;
 
   const style = {
@@ -122,7 +119,7 @@ export function ActivityCard({
         <CardContent className="py-0">
             {scheduledActivity.note && (
                 <p className="text-sm text-muted-foreground mt-2 border-l-2 pl-2 italic">
-                  "{scheduledActivity.note}"
+                  &quot;{scheduledActivity.note}&quot;
                 </p>
             )}
         </CardContent>

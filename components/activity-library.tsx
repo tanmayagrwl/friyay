@@ -1,4 +1,3 @@
-// src/components/activity-library.tsx
 'use client';
 
 import { useState } from 'react';
@@ -15,19 +14,17 @@ import { PlusCircle } from 'lucide-react';
 const CATEGORIES = ['All', 'Food', 'Outdoors', 'Relax', 'Entertainment', 'Family'];
 const VIBES = ['Energetic', 'Relaxed', 'Adventurous', 'Creative', 'Social'];
 export function ActivityLibrary() {
-  // State for managing the "Add New" dialog
+
   const [isNewActivityDialogOpen, setIsNewActivityDialogOpen] = useState(false);
   
-  // State for search and filter functionality
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
 
-  // We will add state for our own custom activities later
   const [customActivities, setCustomActivities] = useState<Activity[]>([]);
   
   const allAvailableActivities = [...ALL_ACTIVITIES, ...customActivities];
 
-  // Derived state: The list of activities to display based on search and filter
+
   const filteredActivities = allAvailableActivities.filter(activity => {
     const matchesFilter = activeFilter === 'All' || activity.category === activeFilter;
     const matchesSearch = searchTerm.trim() === '' ||
@@ -44,18 +41,17 @@ export function ActivityLibrary() {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
       category: formData.get('category') as Activity['category'],
-      vibe: formData.get('vibe') as Activity['vibe'], // Default vibe for now
-      icon: 'Palmtree', // Default icon
+      vibe: formData.get('vibe') as Activity['vibe'], 
+      icon: 'Palmtree', 
     };
     setCustomActivities(prev => [...prev, newActivity]);
-    setIsNewActivityDialogOpen(false); // Close the dialog
+    setIsNewActivityDialogOpen(false); 
   };
 
   return (
     <div className="sticky top-8">
       <h2 className="text-2xl font-semibold mb-4">Activity Library</h2>
       
-      {/* Search and "Add New" Button */}
       <div className="flex gap-2 mb-4">
         <Input
           placeholder="Search activities..."
@@ -109,7 +105,7 @@ export function ActivityLibrary() {
         </Dialog>
       </div>
       
-      {/* Filter Buttons */}
+      
       <div className="flex flex-wrap gap-2 mb-4">
         {CATEGORIES.map(category => (
           <Button
@@ -123,7 +119,7 @@ export function ActivityLibrary() {
         ))}
       </div>
       
-      {/* Activity List */}
+      
       <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
         {filteredActivities.length > 0 ? (
           filteredActivities.map((activity) => (

@@ -1,4 +1,3 @@
-// src/components/schedule-view.tsx
 'use client';
 
 import { useState, useRef } from 'react';
@@ -187,7 +186,7 @@ function DayColumn({
   );
 }
 
-// --- Main ScheduleView Component ---
+
 export function ScheduleView() {
   const activePlan = useScheduleStore((state) => state.getActivePlan());
   const removeActivity = useScheduleStore((state) => state.removeActivity);
@@ -219,7 +218,6 @@ export function ScheduleView() {
         </div>
       </div>
 
-      {/* CORRECTED: The ref is on the container that ONLY holds the day columns */}
       <div ref={scheduleContainerRef} className="grid grid-cols-1 lg:grid-cols-2 gap-6 bg-background rounded-lg">
         <DayColumn 
           day={activePlan?.saturday} 
